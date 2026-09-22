@@ -75,6 +75,16 @@
     color:var(--text-muted);
     font-size:14px;
   }
+  .top-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .settings-btn{
+    flex:0 0 auto;
+    margin-top:2px;
+  }
 
   /* Tabs */
   nav.tabs{
@@ -357,6 +367,50 @@
   .field-error{ color:var(--danger); font-size:12px; margin-top:5px; display:none; }
   .field-error.show{ display:block; }
 
+  .sound-current{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:16px;
+  }
+  .sound-current-info{ display:flex; align-items:center; gap:11px; min-width:0; }
+  .sound-dot{
+    flex:0 0 auto;
+    width:9px; height:9px; border-radius:50%;
+    background:var(--accent);
+  }
+  .sound-name{
+    font-size:14px; font-weight:600;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;
+  }
+  .sound-sub{ font-size:12px; color:var(--text-muted); margin-top:1px; }
+  .sound-preview-btn{ flex:0 0 auto; padding:8px 14px; font-size:13px; }
+  .sound-hint{ font-size:12px; color:var(--text-muted); margin:-6px 0 18px; line-height:1.5; }
+  input[type="file"]{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:11px;
+    padding:9px 10px;
+    color:var(--text-muted);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  input[type="file"]::file-selector-button{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    border-radius:8px;
+    padding:7px 12px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    margin-right:10px;
+    cursor:pointer;
+  }
+
   /* Full-screen alarm overlay */
   .alarm-overlay{
     position:fixed; inset:0;
@@ -409,8 +463,15 @@
 <div id="app">
 
   <header class="top">
-    <h1>Reminder</h1>
-    <p class="sub" id="subline">Stay on top of what matters</p>
+    <div class="top-row">
+      <div>
+        <h1>Reminder</h1>
+        <p class="sub" id="subline">Stay on top of what matters</p>
+      </div>
+      <button class="icon-btn settings-btn" id="settingsBtn" type="button" aria-label="Alarm sound settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V19.5a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H4.5a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 6.15 7.4a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10.6A1.7 1.7 0 0 0 11.64 1.5V1.5a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.56 1.04H22.5a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
   </header>
 
   <div class="banner" id="permBanner">
@@ -493,6 +554,38 @@
     </div>
   </div>
 
+  <!-- Alarm sound settings -->
+  <div class="scrim" id="soundScrim">
+    <div class="sheet">
+      <div class="handle"></div>
+      <h2>Alarm sound</h2>
+
+      <div class="sound-current" id="soundCurrent">
+        <div class="sound-current-info">
+          <span class="sound-dot" id="soundDot"></span>
+          <div>
+            <div class="sound-name" id="soundName">Default tone</div>
+            <div class="sound-sub" id="soundSub">A built-in alarm beep</div>
+          </div>
+        </div>
+        <button type="button" class="btn ghost sound-preview-btn" id="soundPreviewBtn">Preview</button>
+      </div>
+
+      <p class="field-error" id="soundError"></p>
+
+      <div class="field">
+        <label for="soundFileInput">Import from device</label>
+        <input id="soundFileInput" type="file" accept="audio/*">
+      </div>
+      <p class="sound-hint">Choose a short audio clip (under 5&nbsp;MB) to play instead of the default tone when an alarm goes off.</p>
+
+      <div class="sheet-actions">
+        <button type="button" class="btn danger-ghost" id="removeSoundBtn">Use default tone</button>
+        <button type="button" class="btn primary" id="closeSoundBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -501,6 +594,7 @@
 
   /* ---------- Storage ---------- */
   const LS_KEY = 'reminder.items.v1';
+  const SOUND_KEY = 'reminder.alarmSound.v1';
   /** @typedef {{id:string,title:string,description:string,datetime:string,completed:boolean,notified:boolean}} Reminder */
 
   /** @type {Reminder[]} */
@@ -795,6 +889,15 @@
   const alarmDescEl = document.getElementById('alarmDesc');
   let currentAlarmId = null;
   let audioCtx = null, audioTimer = null;
+  let alarmAudioEl = null, previewAudioEl = null;
+  let customSound = loadCustomSound();
+
+  function loadCustomSound(){
+    try{
+      const raw = localStorage.getItem(SOUND_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
 
   function fireAlarm(r){
     if(r.completed || r.notified) return;
@@ -833,6 +936,20 @@
   }
 
   function startAlarmSound(){
+    if(customSound && customSound.dataUrl){
+      try{
+        alarmAudioEl = alarmAudioEl || new Audio();
+        alarmAudioEl.src = customSound.dataUrl;
+        alarmAudioEl.loop = true;
+        alarmAudioEl.currentTime = 0;
+        const p = alarmAudioEl.play();
+        if(p && p.catch) p.catch(() => { startAlarmBeep(); });
+        return;
+      }catch(e){ /* fall through to the built-in beep */ }
+    }
+    startAlarmBeep();
+  }
+  function startAlarmBeep(){
     try{
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       let on = true;
@@ -856,6 +973,7 @@
   }
   function stopAlarmSound(){
     if(audioTimer){ clearInterval(audioTimer); audioTimer = null; }
+    if(alarmAudioEl){ alarmAudioEl.pause(); alarmAudioEl.currentTime = 0; }
   }
 
   document.getElementById('alarmDismiss').addEventListener('click', hideAlarmOverlay);
@@ -877,6 +995,90 @@
   }
   document.getElementById('snooze5').addEventListener('click', () => snooze(5));
   document.getElementById('snooze10').addEventListener('click', () => snooze(10));
+
+  /* ---------- Alarm sound settings ---------- */
+  const soundScrim = document.getElementById('soundScrim');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const soundFileInput = document.getElementById('soundFileInput');
+  const soundNameEl = document.getElementById('soundName');
+  const soundSubEl = document.getElementById('soundSub');
+  const soundErrorEl = document.getElementById('soundError');
+  const soundPreviewBtn = document.getElementById('soundPreviewBtn');
+  const removeSoundBtn = document.getElementById('removeSoundBtn');
+  const closeSoundBtn = document.getElementById('closeSoundBtn');
+  const MAX_SOUND_BYTES = 5 * 1024 * 1024;
+
+  function refreshSoundUI(){
+    if(customSound){
+      soundNameEl.textContent = customSound.name;
+      soundSubEl.textContent = 'Imported from your device';
+      removeSoundBtn.style.display = '';
+    }else{
+      soundNameEl.textContent = 'Default tone';
+      soundSubEl.textContent = 'A built-in alarm beep';
+      removeSoundBtn.style.display = 'none';
+    }
+    soundErrorEl.classList.remove('show');
+  }
+  function showSoundError(msg){
+    soundErrorEl.textContent = msg;
+    soundErrorEl.classList.add('show');
+  }
+
+  settingsBtn.addEventListener('click', () => { refreshSoundUI(); soundScrim.classList.add('open'); });
+  closeSoundBtn.addEventListener('click', () => soundScrim.classList.remove('open'));
+  soundScrim.addEventListener('click', (e) => { if(e.target === soundScrim) soundScrim.classList.remove('open'); });
+
+  soundFileInput.addEventListener('change', () => {
+    const file = soundFileInput.files && soundFileInput.files[0];
+    soundFileInput.value = '';
+    if(!file) return;
+    soundErrorEl.classList.remove('show');
+    if(!file.type.startsWith('audio/')){
+      showSoundError('Please choose an audio file.');
+      return;
+    }
+    if(file.size > MAX_SOUND_BYTES){
+      showSoundError('That file is too large. Choose a clip under 5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const sound = { name: file.name, type: file.type, dataUrl: reader.result };
+      try{
+        localStorage.setItem(SOUND_KEY, JSON.stringify(sound));
+        customSound = sound;
+        refreshSoundUI();
+      }catch(e){
+        showSoundError('Could not save that file — it may be too large for this browser to store.');
+      }
+    };
+    reader.onerror = () => showSoundError('Could not read that file. Try a different one.');
+    reader.readAsDataURL(file);
+  });
+
+  removeSoundBtn.addEventListener('click', () => {
+    if(previewAudioEl){ previewAudioEl.pause(); }
+    customSound = null;
+    localStorage.removeItem(SOUND_KEY);
+    refreshSoundUI();
+  });
+
+  soundPreviewBtn.addEventListener('click', () => {
+    if(!customSound){
+      startAlarmBeep();
+      setTimeout(() => { if(audioTimer){ clearInterval(audioTimer); audioTimer = null; } }, 1400);
+      return;
+    }
+    try{
+      previewAudioEl = previewAudioEl || new Audio();
+      previewAudioEl.pause();
+      previewAudioEl.src = customSound.dataUrl;
+      previewAudioEl.loop = false;
+      previewAudioEl.currentTime = 0;
+      previewAudioEl.play().catch(() => showSoundError('Could not play a preview in this browser.'));
+    }catch(e){ showSoundError('Could not play a preview in this browser.'); }
+  });
 
   /* ---------- Notification permission banner ---------- */
   const permBanner = document.getElementById('permBanner');
