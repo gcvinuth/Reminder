@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reminder</title>
+<meta name="description" content="Create personal reminders with alarms.">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0E1226">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1226;
+    --surface:#171C36;
+    --surface-2:#1F2648;
+    --border:#2A3157;
+    --accent:#F5A623;
+    --accent-ink:#3A2504;
+    --accent-2:#7C8CF8;
+    --text:#EDEFF7;
+    --text-muted:#8A93B8;
+    --success:#4ADE80;
+    --danger:#F2545B;
+    --danger-ink:#3A0F12;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+  }
+  #app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  /* Header */
+  header.top{
+    position:sticky;
+    top:env(safe-area-inset-top,0px);
+    z-index:20;
+    background:linear-gradient(180deg, var(--bg) 70%, transparent);
+    padding:22px 20px 8px;
+  }
+  header.top h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0 0 2px;
+    letter-spacing:-0.02em;
+  }
+  header.top p.sub{
+    margin:0;
+    color:var(--text-muted);
+    font-size:14px;
+  }
+
+  /* Tabs */
+  nav.tabs{
+    display:flex;
+    gap:6px;
+    margin:16px 20px 8px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:4px;
+  }
+  nav.tabs button{
+    flex:1;
+    border:none;
+    background:transparent;
+    color:var(--text-muted);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding:9px 0;
+    border-radius:9px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  nav.tabs button.active{
+    background:var(--surface-2);
+    color:var(--text);
+  }
+  nav.tabs button .count{
+    color:var(--text-muted);
+    font-weight:500;
+    margin-left:4px;
+  }
+  nav.tabs button.active .count{ color:var(--accent); }
+
+  /* List */
+  main{
+    flex:1;
+    padding:8px 20px 120px;
+    overflow-y:auto;
+  }
+  ul.reminder-list{
+    list-style:none;
+    margin:12px 0 0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  li.card{
+    display:flex;
+    align-items:stretch;
+    gap:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px;
+    cursor:pointer;
+    transition:border-color .15s ease;
+  }
+  li.card:hover{ border-color:#3A4278; }
+  li.card.completed{ opacity:.55; }
+  .time-chip{
+    flex:0 0 auto;
+    width:74px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:var(--surface-2);
+    border-radius:12px;
+    padding:8px 4px;
+    text-align:center;
+  }
+  .time-chip .hm{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:-0.02em;
+    line-height:1.1;
+  }
+  .time-chip .ampm{
+    font-size:10px;
+    color:var(--text-muted);
+    margin-top:1px;
+  }
+  .time-chip .day{
+    font-size:10px;
+    color:var(--accent);
+    margin-top:5px;
+    font-weight:600;
+  }
+  li.card.completed .time-chip .day{ color:var(--text-muted); }
+  .card-body{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:3px;
+  }
+  .card-body h3{
+    margin:0;
+    font-size:15px;
+    font-weight:600;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  li.card.completed .card-body h3{ text-decoration:line-through; }
+  .card-body p{
+    margin:0;
+    font-size:13px;
+    color:var(--text-muted);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+  }
+  .card-actions{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:8px;
+  }
+  .icon-btn{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text-muted);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .icon-btn.done-btn{ color:var(--success); }
+  .icon-btn.done-btn.checked{ background:var(--success); color:#0E1226; border-color:var(--success); }
+  .icon-btn.del-btn:hover{ color:var(--danger); }
+
+  /* Empty state */
+  .empty{
+    margin-top:60px;
+    text-align:center;
+    color:var(--text-muted);
+    padding:0 20px;
+  }
+  .empty .glyph{
+    width:56px;height:56px;margin:0 auto 14px;
+    border-radius:16px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .empty h2{
+    font-family:'Space Grotesk',sans-serif;
+    color:var(--text);
+    font-size:17px;
+    margin:0 0 6px;
+  }
+  .empty p{ margin:0; font-size:14px; line-height:1.5; }
+
+  /* FAB */
+  button.fab{
+    position:fixed;
+    left:50%;
+    transform:translateX(calc(-50% + 152px));
+    bottom:calc(24px + env(safe-area-inset-bottom,0px));
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    border:none;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-size:28px;
+    line-height:1;
+    box-shadow:0 10px 24px -6px rgba(245,166,35,.55);
+    cursor:pointer;
+    z-index:25;
+  }
+  @media (max-width:480px){
+    button.fab{ transform:none; right:20px; left:auto; }
+  }
+
+  /* Status banner */
+  .banner{
+    margin:0 20px 4px;
+    padding:11px 14px;
+    border-radius:12px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    font-size:12.5px;
+    color:var(--text-muted);
+    line-height:1.5;
+    display:none;
+  }
+  .banner.show{ display:block; }
+  .banner button.link{
+    background:none;border:none;color:var(--accent);
+    font:inherit;font-weight:600;padding:0;cursor:pointer;
+  }
+
+  /* Sheet / modal */
+  .scrim{
+    position:fixed; inset:0;
+    background:rgba(5,7,18,.6);
+    backdrop-filter:blur(2px);
+    z-index:40;
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .scrim.open{ display:flex; }
+  .sheet{
+    width:100%;
+    max-width:480px;
+    background:var(--surface);
+    border-radius:22px 22px 0 0;
+    padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px));
+    border:1px solid var(--border);
+    border-bottom:none;
+    max-height:88vh;
+    overflow-y:auto;
+    animation:sheet-up .2s ease;
+  }
+  @keyframes sheet-up{ from{ transform:translateY(24px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .sheet .handle{
+    width:36px;height:4px;border-radius:2px;background:var(--border);
+    margin:0 auto 16px;
+  }
+  .sheet h2{
+    font-family:'Space Grotesk',sans-serif;
+    margin:0 0 16px;
+    font-size:19px;
+  }
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-muted);
+    margin-bottom:6px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:11px;
+    padding:11px 13px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+  }
+  .field input:focus, .field textarea:focus{
+    outline:2px solid var(--accent-2);
+    outline-offset:1px;
+  }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .row-2{ display:flex; gap:10px; }
+  .row-2 .field{ flex:1; }
+  .sheet-actions{
+    display:flex; gap:10px; margin-top:6px;
+  }
+  .btn{
+    flex:1;
+    border:none;
+    border-radius:12px;
+    padding:13px 0;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+  }
+  .btn.primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn.ghost{ background:var(--surface-2); color:var(--text); border:1px solid var(--border); }
+  .btn.danger-ghost{ background:var(--surface-2); color:var(--danger); border:1px solid var(--border); }
+  .field-error{ color:var(--danger); font-size:12px; margin-top:5px; display:none; }
+  .field-error.show{ display:block; }
+
+  /* Full-screen alarm overlay */
+  .alarm-overlay{
+    position:fixed; inset:0;
+    background:radial-gradient(circle at 50% 30%, #2A2010 0%, #0E1226 62%);
+    z-index:80;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    padding:calc(48px + env(safe-area-inset-top,0px)) 26px calc(36px + env(safe-area-inset-bottom,0px));
+    text-align:center;
+  }
+  .alarm-overlay.open{ display:flex; }
+  .alarm-top{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:24px; }
+  .alarm-pulse{
+    width:84px;height:84px;border-radius:50%;
+    background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    animation:pulse 1.4s ease-in-out infinite;
+    box-shadow:0 0 0 0 rgba(245,166,35,.5);
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(245,166,35,.45); }
+    70%{ box-shadow:0 0 0 26px rgba(245,166,35,0); }
+    100%{ box-shadow:0 0 0 0 rgba(245,166,35,0); }
+  }
+  .alarm-time{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:56px;
+    font-weight:600;
+    margin:18px 0 2px;
+    letter-spacing:-0.02em;
+  }
+  .alarm-title{ font-size:19px; font-weight:600; margin:2px 0 6px; }
+  .alarm-desc{ color:var(--text-muted); font-size:14.5px; max-width:340px; line-height:1.5; }
+  .alarm-actions{ width:100%; display:flex; flex-direction:column; gap:10px; }
+  .snooze-row{ display:flex; gap:10px; }
+  .snooze-row .btn{ background:var(--surface-2); color:var(--text); border:1px solid var(--border); font-weight:500; }
+  .alarm-actions .btn.primary{ padding:15px 0; font-size:15px; }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+
+  @media (prefers-reduced-motion: reduce){
+    .alarm-pulse{ animation:none; }
+    .sheet{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <h1>Reminder</h1>
+    <p class="sub" id="subline">Stay on top of what matters</p>
+  </header>
+
+  <div class="banner" id="permBanner">
+    Notifications are off, so alarms will only appear as a full-screen alert while Reminder is open in this tab.
+    <button class="link" id="enableNotifBtn" type="button">Turn on notifications</button>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button id="tabUpcomingBtn" class="active" role="tab" aria-selected="true">Upcoming <span class="count" id="upcomingCount">0</span></button>
+    <button id="tabCompletedBtn" role="tab" aria-selected="false">Completed <span class="count" id="completedCount">0</span></button>
+  </nav>
+
+  <main>
+    <ul class="reminder-list" id="list" aria-live="polite"></ul>
+    <div class="empty" id="emptyState" style="display:none;">
+      <div class="glyph">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3a5 5 0 0 0-5 5v3.2c0 .6-.2 1.2-.6 1.7L5 15h14l-1.4-2.1a2.8 2.8 0 0 1-.6-1.7V8a5 5 0 0 0-5-5Z" stroke="#8A93B8" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="#8A93B8" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <h2 id="emptyTitle">No reminders yet</h2>
+      <p id="emptyBody">Tap the + button to set your first reminder.</p>
+    </div>
+  </main>
+
+  <button class="fab" id="addBtn" aria-label="New reminder" type="button">+</button>
+
+  <!-- Add / edit sheet -->
+  <div class="scrim" id="scrim">
+    <form class="sheet" id="sheet">
+      <div class="handle"></div>
+      <h2 id="sheetTitle">New reminder</h2>
+
+      <div class="field">
+        <label for="fTitle">Title</label>
+        <input id="fTitle" name="title" type="text" placeholder="e.g. Call the vet" maxlength="80" required>
+      </div>
+
+      <div class="field">
+        <label for="fDesc">Description</label>
+        <textarea id="fDesc" name="description" placeholder="Add any details (optional)" maxlength="300"></textarea>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="fDate">Date</label>
+          <input id="fDate" name="date" type="date" required>
+        </div>
+        <div class="field">
+          <label for="fTime">Time</label>
+          <input id="fTime" name="time" type="time" required>
+        </div>
+      </div>
+      <p class="field-error" id="formError">Pick a title and a time that hasn't already passed.</p>
+
+      <input type="hidden" id="fId" name="id">
+
+      <div class="sheet-actions">
+        <button type="button" class="btn ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn primary" id="saveBtn">Save reminder</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Full screen alarm -->
+  <div class="alarm-overlay" id="alarmOverlay" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle">
+    <div class="alarm-top">
+      <div class="alarm-pulse">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 3a5 5 0 0 0-5 5v3.2c0 .6-.2 1.2-.6 1.7L5 15h14l-1.4-2.1a2.8 2.8 0 0 1-.6-1.7V8a5 5 0 0 0-5-5Z" fill="#3A2504"/><path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="#3A2504" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="alarm-time" id="alarmTime">--:--</div>
+      <div class="alarm-title" id="alarmTitle">Reminder</div>
+      <div class="alarm-desc" id="alarmDesc"></div>
+    </div>
+    <div class="alarm-actions">
+      <div class="snooze-row">
+        <button type="button" class="btn" id="snooze5">Snooze 5 min</button>
+        <button type="button" class="btn" id="snooze10">Snooze 10 min</button>
+      </div>
+      <button type="button" class="btn primary" id="alarmDone">Mark complete</button>
+      <button type="button" class="btn ghost" id="alarmDismiss">Dismiss</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Storage ---------- */
+  const LS_KEY = 'reminder.items.v1';
+  /** @typedef {{id:string,title:string,description:string,datetime:string,completed:boolean,notified:boolean}} Reminder */
+
+  /** @type {Reminder[]} */
+  let items = loadItems();
+  let dbPromise = openDb();
+
+  function loadItems(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveItems(){
+    localStorage.setItem(LS_KEY, JSON.stringify(items));
+    mirrorToIndexedDb();
+  }
+
+  function openDb(){
+    return new Promise((resolve, reject) => {
+      if(!('indexedDB' in window)){ resolve(null); return; }
+      const req = indexedDB.open('reminder-db', 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains('reminders')){
+          db.createObjectStore('reminders', { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  async function mirrorToIndexedDb(){
+    const db = await dbPromise;
+    if(!db) return;
+    try{
+      const tx = db.transaction('reminders', 'readwrite');
+      const store = tx.objectStore('reminders');
+      store.clear();
+      items.forEach(r => store.put(r));
+    }catch(e){ /* ignore */ }
+  }
+
+  /* ---------- Utilities ---------- */
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+  function fmtTimeParts(dateObj){
+    let h = dateObj.getHours();
+    const m = dateObj.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h === 0) h = 12;
+    return { hm: h + ':' + String(m).padStart(2,'0'), ampm };
+  }
+  function fmtDay(dateObj){
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(dateObj); d.setHours(0,0,0,0);
+    const diffDays = Math.round((d - today) / 86400000);
+    if(diffDays === 0) return 'Today';
+    if(diffDays === 1) return 'Tomorrow';
+    if(diffDays === -1) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+  }
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ---------- Rendering ---------- */
+  const listEl = document.getElementById('list');
+  const emptyEl = document.getElementById('emptyState');
+  const emptyTitle = document.getElementById('emptyTitle');
+  const emptyBody = document.getElementById('emptyBody');
+  const upcomingCountEl = document.getElementById('upcomingCount');
+  const completedCountEl = document.getElementById('completedCount');
+  const tabUpcomingBtn = document.getElementById('tabUpcomingBtn');
+  const tabCompletedBtn = document.getElementById('tabCompletedBtn');
+
+  let activeTab = 'upcoming';
+
+  function render(){
+    const upcoming = items.filter(r => !r.completed).sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+    const completed = items.filter(r => r.completed).sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
+    upcomingCountEl.textContent = upcoming.length;
+    completedCountEl.textContent = completed.length;
+
+    const rows = activeTab === 'upcoming' ? upcoming : completed;
+    listEl.innerHTML = '';
+
+    if(rows.length === 0){
+      emptyEl.style.display = 'block';
+      if(activeTab === 'upcoming'){
+        emptyTitle.textContent = 'No reminders yet';
+        emptyBody.textContent = 'Tap the + button to set your first reminder.';
+      }else{
+        emptyTitle.textContent = 'Nothing completed yet';
+        emptyBody.textContent = 'Reminders you finish will show up here.';
+      }
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    const frag = document.createDocumentFragment();
+    rows.forEach(r => frag.appendChild(renderCard(r)));
+    listEl.appendChild(frag);
+  }
+
+  function renderCard(r){
+    const d = new Date(r.datetime);
+    const { hm, ampm } = fmtTimeParts(d);
+    const li = document.createElement('li');
+    li.className = 'card' + (r.completed ? ' completed' : '');
+    li.dataset.id = r.id;
+    li.innerHTML = `
+      <div class="time-chip">
+        <div class="hm">${hm}</div>
+        <div class="ampm">${ampm}</div>
+        <div class="day">${fmtDay(d)}</div>
+      </div>
+      <div class="card-body">
+        <h3>${escapeHtml(r.title)}</h3>
+        ${r.description ? `<p>${escapeHtml(r.description)}</p>` : ''}
+      </div>
+      <div class="card-actions">
+        <button type="button" class="icon-btn done-btn${r.completed ? ' checked' : ''}" aria-label="${r.completed ? 'Mark as not done' : 'Mark as done'}" data-action="toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="icon-btn del-btn" aria-label="Delete reminder" data-action="delete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 .9h6a1 1 0 0 0 1-.9L18 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>`;
+    return li;
+  }
+
+  listEl.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('[data-action]');
+    const card = e.target.closest('li.card');
+    if(!card) return;
+    const id = card.dataset.id;
+    if(actionBtn){
+      e.stopPropagation();
+      if(actionBtn.dataset.action === 'toggle') toggleComplete(id);
+      if(actionBtn.dataset.action === 'delete') deleteReminder(id);
+      return;
+    }
+    openSheet(items.find(r => r.id === id));
+  });
+
+  tabUpcomingBtn.addEventListener('click', () => setTab('upcoming'));
+  tabCompletedBtn.addEventListener('click', () => setTab('completed'));
+  function setTab(tab){
+    activeTab = tab;
+    tabUpcomingBtn.classList.toggle('active', tab === 'upcoming');
+    tabCompletedBtn.classList.toggle('active', tab === 'completed');
+    tabUpcomingBtn.setAttribute('aria-selected', tab === 'upcoming');
+    tabCompletedBtn.setAttribute('aria-selected', tab === 'completed');
+    render();
+  }
+
+  function toggleComplete(id){
+    const r = items.find(x => x.id === id);
+    if(!r) return;
+    r.completed = !r.completed;
+    if(r.completed) clearTimer(id);
+    else scheduleReminder(r);
+    saveItems();
+    render();
+  }
+
+  function deleteReminder(id){
+    clearTimer(id);
+    items = items.filter(r => r.id !== id);
+    saveItems();
+    render();
+  }
+
+  /* ---------- Add / edit sheet ---------- */
+  const scrim = document.getElementById('scrim');
+  const sheetForm = document.getElementById('sheet');
+  const sheetTitle = document.getElementById('sheetTitle');
+  const fTitle = document.getElementById('fTitle');
+  const fDesc = document.getElementById('fDesc');
+  const fDate = document.getElementById('fDate');
+  const fTime = document.getElementById('fTime');
+  const fId = document.getElementById('fId');
+  const formError = document.getElementById('formError');
+
+  function openSheet(existing){
+    formError.classList.remove('show');
+    if(existing){
+      sheetTitle.textContent = 'Edit reminder';
+      fId.value = existing.id;
+      fTitle.value = existing.title;
+      fDesc.value = existing.description || '';
+      const d = new Date(existing.datetime);
+      fDate.value = toDateInputValue(d);
+      fTime.value = toTimeInputValue(d);
+    }else{
+      sheetTitle.textContent = 'New reminder';
+      fId.value = '';
+      fTitle.value = '';
+      fDesc.value = '';
+      const soon = new Date(Date.now() + 5*60000);
+      fDate.value = toDateInputValue(soon);
+      fTime.value = toTimeInputValue(soon);
+    }
+    scrim.classList.add('open');
+    setTimeout(() => fTitle.focus(), 50);
+  }
+  function closeSheet(){ scrim.classList.remove('open'); }
+  function toDateInputValue(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function toTimeInputValue(d){
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  document.getElementById('addBtn').addEventListener('click', () => openSheet(null));
+  document.getElementById('cancelBtn').addEventListener('click', closeSheet);
+  scrim.addEventListener('click', (e) => { if(e.target === scrim) closeSheet(); });
+
+  sheetForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = fTitle.value.trim();
+    const dt = new Date(fDate.value + 'T' + fTime.value);
+    const isEdit = !!fId.value;
+
+    if(!title || isNaN(dt.getTime()) || (!isEdit && dt.getTime() < Date.now() - 60000)){
+      formError.classList.add('show');
+      return;
+    }
+    formError.classList.remove('show');
+
+    if(isEdit){
+      const r = items.find(x => x.id === fId.value);
+      r.title = title;
+      r.description = fDesc.value.trim();
+      r.datetime = dt.toISOString();
+      r.notified = false;
+      r.completed = false;
+      clearTimer(r.id);
+      scheduleReminder(r);
+    }else{
+      const r = { id: uid(), title, description: fDesc.value.trim(), datetime: dt.toISOString(), completed:false, notified:false };
+      items.push(r);
+      scheduleReminder(r);
+    }
+    saveItems();
+    render();
+    closeSheet();
+  });
+
+  /* ---------- Alarm scheduling ---------- */
+  const timers = new Map();
+  const MAX_TIMEOUT = 2147000000; // ~24.8 days, just under the 32-bit setTimeout limit
+
+  function scheduleReminder(r){
+    clearTimer(r.id);
+    if(r.completed || r.notified) return;
+    const delay = new Date(r.datetime).getTime() - Date.now();
+    if(delay <= 0){ fireAlarm(r); return; }
+    if(delay > MAX_TIMEOUT){ return; } // re-checked by the periodic sweep below
+    const handle = setTimeout(() => fireAlarm(r), delay);
+    timers.set(r.id, handle);
+  }
+  function clearTimer(id){
+    if(timers.has(id)){ clearTimeout(timers.get(id)); timers.delete(id); }
+  }
+  function scheduleAll(){
+    items.forEach(r => { if(!r.completed && !r.notified) scheduleReminder(r); });
+  }
+
+  // Fallback sweep: catches reminders whose timer never fired (tab was
+  // suspended, laptop was asleep, browser throttled a background tab) and
+  // is also what "restores" alarms when the app is reopened after the
+  // device restarts, since a suspended/closed tab cannot keep JS timers
+  // running through a restart.
+  function sweepDue(){
+    const now = Date.now();
+    items.forEach(r => {
+      if(!r.completed && !r.notified && new Date(r.datetime).getTime() <= now){
+        fireAlarm(r);
+      }
+    });
+  }
+  setInterval(sweepDue, 20000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) sweepDue(); });
+  window.addEventListener('focus', sweepDue);
+
+  /* ---------- Full-screen alarm ---------- */
+  const alarmOverlay = document.getElementById('alarmOverlay');
+  const alarmTimeEl = document.getElementById('alarmTime');
+  const alarmTitleEl = document.getElementById('alarmTitle');
+  const alarmDescEl = document.getElementById('alarmDesc');
+  let currentAlarmId = null;
+  let audioCtx = null, audioTimer = null;
+
+  function fireAlarm(r){
+    if(r.completed || r.notified) return;
+    r.notified = true;
+    saveItems();
+    clearTimer(r.id);
+
+    // Ask the service worker to raise a real OS notification too, so the
+    // alarm is visible even if this tab isn't the focused window.
+    navigator.serviceWorker && navigator.serviceWorker.ready.then(reg => {
+      reg.active && reg.active.postMessage({
+        type: 'SHOW_REMINDER',
+        payload: { id: r.id, title: r.title, body: r.description }
+      });
+    }).catch(()=>{});
+
+    showAlarmOverlay(r);
+  }
+
+  function showAlarmOverlay(r){
+    currentAlarmId = r.id;
+    const d = new Date(r.datetime);
+    const { hm, ampm } = fmtTimeParts(d);
+    alarmTimeEl.textContent = hm + ' ' + ampm;
+    alarmTitleEl.textContent = r.title;
+    alarmDescEl.textContent = r.description || '';
+    alarmOverlay.classList.add('open');
+    startAlarmSound();
+    if(navigator.vibrate) navigator.vibrate([400,200,400,200,400,200,400]);
+  }
+  function hideAlarmOverlay(){
+    alarmOverlay.classList.remove('open');
+    stopAlarmSound();
+    if(navigator.vibrate) navigator.vibrate(0);
+    currentAlarmId = null;
+  }
+
+  function startAlarmSound(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      let on = true;
+      const beep = () => {
+        if(!on) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      };
+      beep();
+      audioTimer = setInterval(beep, 700);
+      startAlarmSound._stop = () => { on = false; };
+    }catch(e){ /* audio unavailable */ }
+  }
+  function stopAlarmSound(){
+    if(audioTimer){ clearInterval(audioTimer); audioTimer = null; }
+  }
+
+  document.getElementById('alarmDismiss').addEventListener('click', hideAlarmOverlay);
+  document.getElementById('alarmDone').addEventListener('click', () => {
+    const r = items.find(x => x.id === currentAlarmId);
+    if(r){ r.completed = true; saveItems(); render(); }
+    hideAlarmOverlay();
+  });
+  function snooze(mins){
+    const r = items.find(x => x.id === currentAlarmId);
+    if(r){
+      r.datetime = new Date(Date.now() + mins*60000).toISOString();
+      r.notified = false;
+      saveItems();
+      scheduleReminder(r);
+      render();
+    }
+    hideAlarmOverlay();
+  }
+  document.getElementById('snooze5').addEventListener('click', () => snooze(5));
+  document.getElementById('snooze10').addEventListener('click', () => snooze(10));
+
+  /* ---------- Notification permission banner ---------- */
+  const permBanner = document.getElementById('permBanner');
+  function refreshPermBanner(){
+    if(!('Notification' in window)){ permBanner.classList.remove('show'); return; }
+    permBanner.classList.toggle('show', Notification.permission !== 'granted');
+  }
+  document.getElementById('enableNotifBtn').addEventListener('click', async () => {
+    if(!('Notification' in window)) return;
+    await Notification.requestPermission();
+    refreshPermBanner();
+  });
+
+  /* ---------- Service worker ---------- */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', async () => {
+      try{
+        const reg = await navigator.serviceWorker.register('./sw.js');
+        // Best-effort periodic background sync (Chrome/Android only, and
+        // only if the browser grants the permission). Not guaranteed.
+        if('periodicSync' in reg){
+          try{
+            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+            if(status.state === 'granted'){
+              await reg.periodicSync.register('check-reminders', { minInterval: 15 * 60 * 1000 });
+            }
+          }catch(e){ /* not supported */ }
+        }
+      }catch(e){ /* service worker registration failed, app still works in-tab */ }
+    });
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const data = event.data || {};
+      if(data.type === 'CHECK_NOW') sweepDue();
+      if(data.type === 'ALARM_TAPPED'){
+        const r = items.find(x => x.id === data.id);
+        if(r) showAlarmOverlay(r);
+      }
+    });
+  }
+
+  /* ---------- Init ---------- */
+  mirrorToIndexedDb();
+  scheduleAll();
+  sweepDue();
+  refreshPermBanner();
+  render();
+
+  // Nudge for notification permission once, after first paint, without
+  // being asked before the person has seen the app.
+  if('Notification' in window && Notification.permission === 'default'){
+    setTimeout(() => { Notification.requestPermission().then(refreshPermBanner); }, 1200);
+  }
+})();
+</script>
+</body>
+</html>
